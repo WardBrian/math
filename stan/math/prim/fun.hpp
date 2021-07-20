@@ -155,6 +155,8 @@
 #include <stan/math/prim/fun/lambert_w.hpp>
 #include <stan/math/prim/fun/lb_constrain.hpp>
 #include <stan/math/prim/fun/lb_free.hpp>
+#include <stan/math/prim/fun/lb_offset_multiplier_constrain.hpp>
+#include <stan/math/prim/fun/lb_offset_multiplier_free.hpp>
 #include <stan/math/prim/fun/lbeta.hpp>
 #include <stan/math/prim/fun/ldexp.hpp>
 #include <stan/math/prim/fun/LDLT_factor.hpp>
@@ -197,6 +199,8 @@
 #include <stan/math/prim/fun/logit.hpp>
 #include <stan/math/prim/fun/lub_constrain.hpp>
 #include <stan/math/prim/fun/lub_free.hpp>
+#include <stan/math/prim/fun/lub_offset_multiplier_constrain.hpp>
+#include <stan/math/prim/fun/lub_offset_multiplier_free.hpp>
 #include <stan/math/prim/fun/make_nu.hpp>
 #include <stan/math/prim/fun/matrix_exp.hpp>
 #include <stan/math/prim/fun/matrix_exp_multiply.hpp>
@@ -340,6 +344,8 @@
 #include <stan/math/prim/fun/typedefs.hpp>
 #include <stan/math/prim/fun/ub_constrain.hpp>
 #include <stan/math/prim/fun/ub_free.hpp>
+#include <stan/math/prim/fun/ub_offset_multiplier_constrain.hpp>
+#include <stan/math/prim/fun/ub_offset_multiplier_free.hpp>
 #include <stan/math/prim/fun/uniform_simplex.hpp>
 #include <stan/math/prim/fun/unitspaced_array.hpp>
 #include <stan/math/prim/fun/unit_vector_constrain.hpp>
