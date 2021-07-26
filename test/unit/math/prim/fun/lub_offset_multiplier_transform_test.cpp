@@ -277,6 +277,54 @@ TEST(prob_transform, lub_om_vec) {
                   lp);
 }
 
+TEST(prob_transform, lub_om_exception) {
+  using stan::math::lub_offset_multiplier_constrain;
+  using stan::math::lub_offset_multiplier_free;
+
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 1.0, 1.0, 0, -1),
+               std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 1.0, 1.0, 0, 0),
+               std::domain_error);
+
+  EXPECT_NO_THROW(lub_offset_multiplier_constrain(5.0, 1.0, 1.01, 0, 1));
+  double lp = 12;
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 1.0, 1.0, 0, -1, lp),
+               std::domain_error);
+  EXPECT_NO_THROW(lub_offset_multiplier_constrain(5.0, 1.0, 1.01, 0, 1, lp));
+
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 0.0, 10.0, 1.0, 0.0),
+               std::domain_error);
+  EXPECT_THROW(
+      lub_offset_multiplier_constrain(
+          5.0, 0.0, 10.0, std::numeric_limits<double>::infinity(), 1.0),
+      std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 0.0, 10.0, NAN, 1.0),
+               std::domain_error);
+  EXPECT_NO_THROW(lub_offset_multiplier_constrain(5.0, 0, 2, 1.0, 0.01));
+  EXPECT_THROW(lub_offset_multiplier_free(5.0, 0, 2, 1.0, 0.0),
+               std::domain_error);
+  EXPECT_THROW(
+      lub_offset_multiplier_free(5.0, 9.0, 10.0,
+                                 std::numeric_limits<double>::infinity(), 1.0),
+      std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_free(5.0, 0.0, 10.0, NAN, 1.0),
+               std::domain_error);
+  EXPECT_NO_THROW(lub_offset_multiplier_free(5.0, 0.0, 10.0, 1.0, 0.01));
+  EXPECT_THROW(lub_offset_multiplier_free(5.0, 11.0, 10.0, 1.0, 0.01),
+               std::domain_error);
+
+  lp = 12;
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 0, 1, 1.0, 0.0, lp),
+               std::domain_error);
+  EXPECT_THROW(
+      lub_offset_multiplier_constrain(
+          5.0, 0, 10, std::numeric_limits<double>::infinity(), 1.0, lp),
+      std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_constrain(5.0, 0, 10, NAN, 1.0, lp),
+               std::domain_error);
+  EXPECT_NO_THROW(lub_offset_multiplier_constrain(5.0, 0, 2, 1.0, 0.01, lp));
+}
+
 TEST(prob_transform, lub_om_j) {
   for (double L : std::vector<double>{-1, 0.5, 2, 10}) {
     for (double U : std::vector<double>{0.5, 2, 5, 10}) {
