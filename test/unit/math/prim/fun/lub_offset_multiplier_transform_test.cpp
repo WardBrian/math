@@ -62,6 +62,15 @@ TEST(prob_transform, lub_om_vec) {
   Eigen::VectorXd resvvss(2);
   resvvss << (2.0 + 1.0) * stan::math::inv_logit(-1.0 * 5.0 + 0.5) - 1.0,
       (3.0 - 0.5) * stan::math::inv_logit(1.1 * 5.0 + 0.5) + 0.5;
+  Eigen::VectorXd ressvsv(2);
+  ressvsv << (2.0 - 1.0) * stan::math::inv_logit(-1.0 * 2.0 + 0.5) + 1.0,
+      (3.0 - 1.0) * stan::math::inv_logit(1.1 * 0.5 + 0.5) + 1.0;
+  Eigen::VectorXd resvsvs(2);
+  resvsvs << (2.0 + 1.0) * stan::math::inv_logit(-1.0 * 5.0 + 2.0) - 1.0,
+      (2.0 - 0.5) * stan::math::inv_logit(1.1 * 5.0 + 3.0) + 0.5;
+  Eigen::VectorXd ressvvs(2);
+  ressvvs << (2.0 - 1.0) * stan::math::inv_logit(-1.0 * 5.0 + 2.0) + 1.0,
+      (3.0 - 1.0) * stan::math::inv_logit(1.1 * 5.0 + 3.0) + 1.0;
   Eigen::VectorXd ressssv(2);
   ressssv << (2.0 - 1.0) * stan::math::inv_logit(-1.0 * 2.0 + 0.5) + 1.0,
       (2.0 - 1.0) * stan::math::inv_logit(1.1 * 0.5 + 0.5) + 1.0;
@@ -94,6 +103,12 @@ TEST(prob_transform, lub_om_vec) {
                                 input, lbv, ub, mu, sigmav));
   EXPECT_MATRIX_EQ(resvvss, stan::math::lub_offset_multiplier_constrain(
                                 input, lbv, ubv, mu, sigma));
+  EXPECT_MATRIX_EQ(ressvsv, stan::math::lub_offset_multiplier_constrain(
+                                input, lb, ubv, mu, sigmav));
+  EXPECT_MATRIX_EQ(resvsvs, stan::math::lub_offset_multiplier_constrain(
+                                input, lbv, ub, muv, sigma));
+  EXPECT_MATRIX_EQ(ressvvs, stan::math::lub_offset_multiplier_constrain(
+                                input, lb, ubv, muv, sigma));
   EXPECT_MATRIX_EQ(ressssv, stan::math::lub_offset_multiplier_constrain(
                                 input, lb, ub, mu, sigmav));
   EXPECT_MATRIX_EQ(resssvs, stan::math::lub_offset_multiplier_constrain(
@@ -192,6 +207,33 @@ TEST(prob_transform, lub_om_vec) {
                       .sum(),
                   lp);
   lp = 0.0;
+  EXPECT_MATRIX_EQ(ressvsv, stan::math::lub_offset_multiplier_constrain(
+                                input, lb, ubv, mu, sigmav, lp));
+  EXPECT_FLOAT_EQ(
+      ((ubv.array() - lb).log() + (input.array() * sigmav.array() + mu)
+       - 2 * (input.array() * sigmav.array() + mu).exp().log1p().array()
+       + sigmav.array().log())
+          .sum(),
+      lp);
+  lp = 0.0;
+  EXPECT_MATRIX_EQ(resvsvs, stan::math::lub_offset_multiplier_constrain(
+                                input, lbv, ub, muv, sigma, lp));
+  EXPECT_FLOAT_EQ(
+      ((ub - lbv.array()).log() + (input.array() * sigma + muv.array())
+       - 2 * (input.array() * sigma + muv.array()).exp().log1p().array()
+       + std::log(sigma))
+          .sum(),
+      lp);
+  lp = 0.0;
+  EXPECT_MATRIX_EQ(ressvvs, stan::math::lub_offset_multiplier_constrain(
+                                input, lb, ubv, muv, sigma, lp));
+  EXPECT_FLOAT_EQ(
+      ((ubv.array() - lb).log() + (input.array() * sigma + muv.array())
+       - 2 * (input.array() * sigma + muv.array()).exp().log1p().array()
+       + std::log(sigma))
+          .sum(),
+      lp);
+  lp = 0.0;
   EXPECT_MATRIX_EQ(ressssv, stan::math::lub_offset_multiplier_constrain(
                                 input, lb, ub, mu, sigmav, lp));
   EXPECT_FLOAT_EQ(
@@ -277,4 +319,15 @@ TEST(prob_transform, lub_om_f) {
       }
     }
   }
+}
+
+TEST(prob_transform, lub_om_rt) {
+  double x = -1.0;
+  double xc
+      = stan::math::lub_offset_multiplier_constrain(x, 2.0, 4.0, 1.1, 3.0);
+  double xcf = stan::math::lub_offset_multiplier_free(xc, 2.0, 4.0, 1.1, 3.0);
+  EXPECT_FLOAT_EQ(x, xcf);
+  double xcfc
+      = stan::math::lub_offset_multiplier_constrain(xcf, 2.0, 4.0, 1.1, 3.0);
+  EXPECT_FLOAT_EQ(xc, xcfc);
 }
