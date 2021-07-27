@@ -1,7 +1,6 @@
 #include <stan/math/prim.hpp>
 #include <test/unit/util.hpp>
 #include <gtest/gtest.h>
-#include <limits>
 
 TEST(prob_transform, lub_om) {
   for (double L : std::vector<double>{-1, 0.5, 2, 10}) {
@@ -20,6 +19,21 @@ TEST(prob_transform, lub_om) {
       }
     }
   }
+}
+
+TEST(prob_transform, lub_om_underflow) {
+  EXPECT_EQ(0, stan::math::lub_offset_multiplier_constrain(-1000, 0, 1, 0, 1));
+  double lp = 0;
+  EXPECT_EQ(0,
+            stan::math::lub_offset_multiplier_constrain(-1000, 0, 1, 0, 1, lp));
+  EXPECT_EQ(0, stan::math::lub_offset_multiplier_constrain(0, 0, 1, -1000, 1));
+  lp = 0;
+  EXPECT_EQ(0,
+            stan::math::lub_offset_multiplier_constrain(0, 0, 1, -1000, 1, lp));
+  EXPECT_EQ(0, stan::math::lub_offset_multiplier_constrain(-1, 0, 1, 0, 1000));
+  lp = 0;
+  EXPECT_EQ(0,
+            stan::math::lub_offset_multiplier_constrain(-1, 0, 1, 0, 1000, lp));
 }
 
 TEST(prob_transform, lub_om_vec) {
@@ -277,6 +291,47 @@ TEST(prob_transform, lub_om_vec) {
                   lp);
 }
 
+TEST(prob_transform, lub_om_constrain_matrix) {
+  Eigen::VectorXd x(4);
+  // x << -1.0, 1.1, 3.0, 5.0;
+  x << -1.0, 1.1, 3.0, 5.0;
+  Eigen::VectorXd ub(4);
+  ub << stan::math::INFTY, stan::math::INFTY, 6.0, 7.0;
+  Eigen::VectorXd lb(4);
+  lb << 2.0, stan::math::NEGATIVE_INFTY, stan::math::NEGATIVE_INFTY, 2.0;
+
+  Eigen::VectorXd sigma(4);
+  sigma << 1.1, 0.3, 6.0, 7.0;
+  Eigen::VectorXd offset(4);
+  offset << -2.0, 0.0, 0.2, 2.0;
+
+  double sigmad = 8.0;
+  double offsetd = -2.0;
+
+  double ubd = 8.0;
+  double lbd = -2.0;
+
+  Eigen::VectorXd sigma_bad(3);
+  Eigen::VectorXd offset_bad(3);
+
+  Eigen::VectorXd ub_bad(3);
+  Eigen::VectorXd lb_bad(3);
+
+  // matrix, real, real, real, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ubd, offsetd, sigmad));
+    }
+    auto x_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                         offsetd, sigmad);
+    EXPECT_MATRIX_EQ(x, x_free);
+  }
+  // todo many more cases
+}
+
 TEST(prob_transform, lub_om_exception) {
   using stan::math::lub_offset_multiplier_constrain;
   using stan::math::lub_offset_multiplier_free;
@@ -307,6 +362,16 @@ TEST(prob_transform, lub_om_exception) {
       lub_offset_multiplier_free(5.0, 9.0, 10.0,
                                  std::numeric_limits<double>::infinity(), 1.0),
       std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_free(10.0, 0, 1, 4.0, 2.0),
+               std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_free(
+                   1.0, -std::numeric_limits<double>::infinity(),
+                   std::numeric_limits<double>::infinity(), 2.0, 0.0),
+               std::domain_error);
+  EXPECT_THROW(lub_offset_multiplier_free(
+                   -10.0 - 0.1, -std::numeric_limits<double>::infinity(),
+                   std::numeric_limits<double>::infinity(), -10.0, -27.0),
+               std::domain_error);
   EXPECT_THROW(lub_offset_multiplier_free(5.0, 0.0, 10.0, NAN, 1.0),
                std::domain_error);
   EXPECT_NO_THROW(lub_offset_multiplier_free(5.0, 0.0, 10.0, 1.0, 0.01));
