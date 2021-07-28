@@ -3,13 +3,14 @@
 
 #include <stan/math/prim/fun/offset_multiplier_free.hpp>
 #include <stan/math/prim/fun/ub_free.hpp>
+#include <stan/math/prim/fun/eval.hpp>
 
 namespace stan {
 namespace math {
 template <typename T, typename U, typename M, typename S>
 inline auto lub_offset_multiplier_free(const T& y, const U& ub, const M& mu,
                                        const S& sigma) {
-  return offset_multiplier_free(ub_free(y, ub), mu, sigma);
+  return eval(offset_multiplier_free(ub_free(y, ub), mu, sigma));
 }
 
 }  // namespace math
