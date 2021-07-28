@@ -1595,6 +1595,2281 @@ TEST(prob_transform, lub_om_constrain_array) {
   }
 }
 
+TEST(prob_transform, lub_om_constrain_matrix_array) {
+  Eigen::VectorXd x(4);
+  x << -1.0, 1.1, 3.0, 4.0;
+  Eigen::VectorXd bad_x(4);
+  bad_x << 3, 3, 3, 3;
+  Eigen::VectorXd ub(4);
+  ub << stan::math::INFTY, stan::math::INFTY, 6.0, 7.0;
+  Eigen::VectorXd lb(4);
+  lb << 2.0, stan::math::NEGATIVE_INFTY, stan::math::NEGATIVE_INFTY, 2.0;
+  Eigen::VectorXd sigma(4);
+  sigma << 1.1, 0.3, 6.0, 3.0;
+  Eigen::VectorXd offset(4);
+  offset << -2.0, 0.0, 0.2, 2.0;
+
+  double sigmad = 3.0;
+  double offsetd = -2.0;
+  double ubd = 8;
+  double lbd = -2;
+
+  Eigen::VectorXd sigma_bad(3);
+  Eigen::VectorXd offset_bad(3);
+  Eigen::VectorXd ub_bad(3);
+  Eigen::VectorXd lb_bad(3);
+  std::vector<Eigen::VectorXd> x_vec{x, x};
+  std::vector<Eigen::VectorXd> ub_vec{ub, ub};
+  std::vector<Eigen::VectorXd> lb_vec{lb, lb};
+  std::vector<Eigen::VectorXd> sigma_vec{sigma, sigma};
+  std::vector<Eigen::VectorXd> offset_vec{offset, offset};
+  std::vector<Eigen::VectorXd> x_bad_vec{bad_x, bad_x};
+
+  std::vector<Eigen::VectorXd> sigma_bad_vec{sigma_bad, sigma_bad, sigma_bad};
+  std::vector<Eigen::VectorXd> offset_bad_vec{offset_bad, offset_bad,
+                                              sigma_bad};
+  std::vector<Eigen::VectorXd> ub_bad_vec{ub_bad, ub_bad, ub_bad};
+  std::vector<Eigen::VectorXd> lb_bad_vec{lb_bad, lb_bad, ub_bad};
+
+  // array[] matrix, array[] matrix, array[] matrix, array[] matrix, array[]
+  // matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub_vec[i](j),
+                            offset_vec[i](j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub_vec[i](j),
+                            offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub_vec[i](j),
+                            offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offset(j),
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub_vec, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub_vec, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offsetd,
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_vec, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_vec, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub_vec, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, array[] matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub_vec, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub_vec[i](j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub_vec, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub_vec, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub_vec, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub(j), offset_vec[i](j),
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ub, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ub,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ub,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ub,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb_vec, ub,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offset, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb_vec, ub,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offset, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ub, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ub,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb_vec, ub,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ub(j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offsetd, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb_vec, ub,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ub(j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb_vec, ub,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ub, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ub, offsetd, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ubd, offset_vec[i](j),
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ubd, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_vec, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ubd, offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ubd,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ubd, offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ubd, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ubd,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ubd, offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ubd,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ubd, offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offset, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ubd, offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offset, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb_vec[i](j), ubd, offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb_bad_vec, ubd, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_vec, ubd, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_vec, ubd,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ubd, offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offsetd, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, array[] matrix, real, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb_vec, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb_vec[i](j), ubd, offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb_vec, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb_bad_vec, ubd, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb_bad_vec,
+                                                        ubd, offsetd, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub_vec[i](j), offset_vec[i](j),
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub_vec, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub_vec,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub_vec,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub_vec, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub_vec,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub_vec,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub_vec,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_vec, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub_vec,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub_vec,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub_vec[i](j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, array[] matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub_vec,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub_vec[i](j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub_vec,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub(j), offset_vec[i](j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub(j), offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub(j), offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub(j), offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub(j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free
+        = stan::math::lub_offset_multiplier_free(result, lb, ub, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub(j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ub(j), offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ub, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ub,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub(j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ub,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ub(j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ub,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, real, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ubd, offset_vec[i](j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lb, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, real, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ubd, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ubd, offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ubd,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, real, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ubd,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, real, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ubd, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lb(j), ubd, offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ubd,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, real, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ubd,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, real, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ubd,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, real, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lb, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lb, ubd, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lb, ubd,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, matrix, real, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ubd,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, matrix, real, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lb, ubd,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lb(j), ubd, offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lb, ubd,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, array[] matrix, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub_vec[i](j), offset_vec[i](j),
+                            sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_vec, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_vec, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub_vec[i](j), offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub_vec,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub_vec[i](j), offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub_vec,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub_vec[i](j), offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub_vec,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub_vec[i](j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub_vec[i](j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offset, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub_vec[i](j), offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_vec, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub_vec,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub_vec[i](j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, array[] matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub_vec, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub_vec[i](j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub_vec, offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub_bad_vec, offsetd, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub(j), offset_vec[i](j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ub, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub(j), offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ub(j), offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ub,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, matrix, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ub,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, matrix, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ub, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ub,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, matrix, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ub,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, matrix, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ub,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ub(j), offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ub,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, real, array[] matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(
+            result[i](j),
+            stan::math::lub_offset_multiplier_constrain(
+                x_vec[i](j), lbd, ubd, offset_vec[i](j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offset_vec, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ubd, offset_bad_vec, sigma_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(
+                     x_bad_vec, lbd, ubd, offset_vec, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, real, array[] matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ubd, offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offset_vec[i](j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offset_vec, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offset_bad_vec, sigma),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ubd,
+                                                        offset_bad_vec, sigma),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, real, array[] matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offset_vec[i](j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offset_vec, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offset_bad_vec, sigmad),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ubd,
+                                                        offset_bad_vec, sigmad),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, real, matrix, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ubd, offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offset(j), sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offset, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offset, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ubd,
+                                                        offset, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, real, matrix, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ubd,
+                                                              offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offset(j), sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offset, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, real, matrix, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ubd,
+                                                              offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offset(j), sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offset, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, real, real, array[] matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(
+        x_vec, lbd, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offsetd, sigma_vec[i](j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offsetd, sigma_vec);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x_bad_vec, lbd, ubd, offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+    EXPECT_THROW(stan::math::lub_offset_multiplier_free(x_bad_vec, lbd, ubd,
+                                                        offsetd, sigma_bad_vec),
+                 std::invalid_argument);
+  }
+  // array[] matrix, real, real, real, matrix
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ubd,
+                                                              offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offsetd, sigma(j)));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offsetd, sigma);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+  // array[] matrix, real, real, real, real
+  {
+    auto result = stan::math::lub_offset_multiplier_constrain(x_vec, lbd, ubd,
+                                                              offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(result[i](j),
+                        stan::math::lub_offset_multiplier_constrain(
+                            x_vec[i](j), lbd, ubd, offsetd, sigmad));
+      }
+    }
+    auto x_vec_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
+                                                             offsetd, sigmad);
+    for (size_t i = 0; i < x_vec.size(); ++i) {
+      for (size_t j = 0; j < x_vec[i].size(); ++j) {
+        EXPECT_FLOAT_EQ(x_vec[i].coeff(j), x_vec_free[i].coeff(j));
+      }
+    }
+  }
+}
+
 TEST(prob_transform, lub_om_exception) {
   using stan::math::lub_offset_multiplier_constrain;
   using stan::math::lub_offset_multiplier_free;
