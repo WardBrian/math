@@ -1629,7 +1629,7 @@ TEST(prob_transform, lub_om_constrain_matrix_array) {
   std::vector<Eigen::VectorXd> offset_bad_vec{offset_bad, offset_bad,
                                               sigma_bad};
   std::vector<Eigen::VectorXd> ub_bad_vec{ub_bad, ub_bad, ub_bad};
-  std::vector<Eigen::VectorXd> lb_bad_vec{lb_bad, lb_bad, ub_bad};
+  std::vector<Eigen::VectorXd> lb_bad_vec{lb_bad, lb_bad, lb_bad};
 
   // array[] matrix, array[] matrix, array[] matrix, array[] matrix, array[]
   // matrix
