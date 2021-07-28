@@ -293,27 +293,23 @@ TEST(prob_transform, lub_om_vec) {
 
 TEST(prob_transform, lub_om_constrain_matrix) {
   Eigen::VectorXd x(4);
-  // x << -1.0, 1.1, 3.0, 5.0;
-  x << -1.0, 1.1, 3.0, 5.0;
+  x << -1.0, 1.1, 3.0, 4.0;
   Eigen::VectorXd ub(4);
   ub << stan::math::INFTY, stan::math::INFTY, 6.0, 7.0;
   Eigen::VectorXd lb(4);
   lb << 2.0, stan::math::NEGATIVE_INFTY, stan::math::NEGATIVE_INFTY, 2.0;
-
   Eigen::VectorXd sigma(4);
-  sigma << 1.1, 0.3, 6.0, 7.0;
+  sigma << 1.1, 0.3, 6.0, 3.0;
   Eigen::VectorXd offset(4);
   offset << -2.0, 0.0, 0.2, 2.0;
 
-  double sigmad = 8.0;
+  double sigmad = 3.0;
   double offsetd = -2.0;
-
-  double ubd = 8.0;
-  double lbd = -2.0;
+  double ubd = 8;
+  double lbd = -2;
 
   Eigen::VectorXd sigma_bad(3);
   Eigen::VectorXd offset_bad(3);
-
   Eigen::VectorXd ub_bad(3);
   Eigen::VectorXd lb_bad(3);
 
@@ -325,11 +321,281 @@ TEST(prob_transform, lub_om_constrain_matrix) {
       EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
                                      x(i), lbd, ubd, offsetd, sigmad));
     }
-    auto x_free = stan::math::lub_offset_multiplier_free(result, lbd, ubd,
-                                                         offsetd, sigmad);
-    EXPECT_MATRIX_EQ(x, x_free);
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
   }
-  // todo many more cases
+
+  // matrix, matrix, real, real, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ubd, offsetd, sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offsetd, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(x, lb_bad, ubd,
+                                                             offsetd, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, matrix, real, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ub, offsetd, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ub(i), offsetd, sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offsetd, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(x, lbd, ub_bad,
+                                                             offsetd, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, real, matrix, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ubd, offset, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ubd, offset(i), sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offset, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ubd, offset_bad, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, real, real, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ubd, offsetd, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ubd, offsetd, sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offsetd, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ubd, offsetd, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, matrix, real, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ub, offsetd, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ub(i), offsetd, sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offsetd, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(x, lb_bad, ub_bad,
+                                                             offsetd, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, real, matrix, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ubd, offset, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ubd, offset(i), sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offset, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ubd, offset_bad, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, real, real, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ubd, offsetd, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ubd, offsetd, sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offsetd, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ubd, offsetd, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, matrix, matrix, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ub, offset, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ub(i), offset(i), sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offset, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ub_bad, offset_bad, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, matrix, real, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ub, offsetd, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ub(i), offsetd, sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offsetd, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ub_bad, offsetd, sigma_bad),
+                 std::invalid_argument);
+  }
+  // matrix, real, real, matrix, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ubd, offset, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ubd, offset(i), sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ubd, offset, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ubd, offset_bad, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, real, matrix, matrix, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lbd, ub, offset, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lbd, ub(i), offset(i), sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lbd, ub, offset, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lbd, ub_bad, offset_bad, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, real, matrix, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ubd, offset, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ubd, offset(i), sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ubd, offset, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ubd, offset_bad, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, matrix, real, matrix
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ub, offsetd, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ub(i), offsetd, sigma(i)));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offsetd, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ub_bad, offsetd, sigma_bad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, matrix, matrix, real
+  {
+    Eigen::VectorXd result = stan::math::lub_offset_multiplier_constrain(
+        x, lb, ub, offset, sigmad);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ub(i), offset(i), sigmad));
+    }
+    Eigen::VectorXd x_free = stan::math::lub_offset_multiplier_free(
+        result, lb, ub, offset, sigmad);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ub_bad, offset_bad, sigmad),
+                 std::invalid_argument);
+  }
+
+  // matrix, matrix, matrix, matrix, matrix
+  {
+    Eigen::VectorXd result
+        = stan::math::lub_offset_multiplier_constrain(x, lb, ub, offset, sigma);
+    for (size_t i = 0; i < result.size(); ++i) {
+      EXPECT_FLOAT_EQ(result(i), stan::math::lub_offset_multiplier_constrain(
+                                     x(i), lb(i), ub(i), offset(i), sigma(i)));
+    }
+    Eigen::VectorXd x_free
+        = stan::math::lub_offset_multiplier_free(result, lb, ub, offset, sigma);
+    for (size_t i = 0; i < x.size(); ++i) {
+      EXPECT_FLOAT_EQ(x.coeff(i), x_free.coeff(i));
+    }
+    EXPECT_THROW(stan::math::lub_offset_multiplier_constrain(
+                     x, lb_bad, ub_bad, offset_bad, sigma_bad),
+                 std::invalid_argument);
+  }
 }
 
 TEST(prob_transform, lub_om_exception) {
@@ -435,12 +701,16 @@ TEST(prob_transform, lub_om_f) {
 }
 
 TEST(prob_transform, lub_om_rt) {
-  double x = -1.0;
+  double x = 5.0;
+  double lb = -2.0;
+  double ub = 8.0;
+  double off = -2;
+  double sigma = 3.0;
   double xc
-      = stan::math::lub_offset_multiplier_constrain(x, 2.0, 4.0, 1.1, 3.0);
-  double xcf = stan::math::lub_offset_multiplier_free(xc, 2.0, 4.0, 1.1, 3.0);
+      = stan::math::lub_offset_multiplier_constrain(x, lb, ub, off, sigma);
+  double xcf = stan::math::lub_offset_multiplier_free(xc, lb, ub, off, sigma);
   EXPECT_FLOAT_EQ(x, xcf);
   double xcfc
-      = stan::math::lub_offset_multiplier_constrain(xcf, 2.0, 4.0, 1.1, 3.0);
+      = stan::math::lub_offset_multiplier_constrain(xcf, lb, ub, off, sigma);
   EXPECT_FLOAT_EQ(xc, xcfc);
 }
