@@ -8,7 +8,7 @@
 namespace stan {
 namespace math {
 template <typename T, typename U, typename M, typename S>
-inline auto lub_offset_multiplier_free(const T& y, const U& ub, const M& mu,
+inline auto ub_offset_multiplier_free(const T& y, const U& ub, const M& mu,
                                        const S& sigma) {
   return eval(offset_multiplier_free(ub_free(y, ub), mu, sigma));
 }
