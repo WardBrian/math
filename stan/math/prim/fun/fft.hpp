@@ -30,7 +30,8 @@ namespace math {
  * @param[in] x vector to transform
  * @return discrete Fourier transform of `x`
  */
-template <typename V, require_eigen_vector_vt<is_complex, V>* = nullptr>
+template <typename V, require_eigen_vector_vt<is_complex, V>* = nullptr,
+          require_not_var_t<base_type_t<value_type_t<V>>>* = nullptr>
 inline Eigen::Matrix<scalar_type_t<V>, -1, 1> fft(const V& x) {
   // copy because fft() requires Eigen::Matrix type
   Eigen::Matrix<scalar_type_t<V>, -1, 1> xv = x;
