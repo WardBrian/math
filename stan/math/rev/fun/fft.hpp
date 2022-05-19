@@ -23,9 +23,24 @@ inline plain_type_t<V> fft(const V& v) {
   arena_t<V> arena_v = v;
   arena_t<V> res = fft(arena_v.val());
 
-  reverse_pass_callback([arena_v, res]() mutable {
-    arena_v.adj() += inv_fft(res.adj());
-  });
+  reverse_pass_callback(
+      [arena_v, res]() mutable { arena_v.adj() += inv_fft(res.adj()); });
+
+  return plain_type_t<V>(res);
+}
+
+template <typename V, require_eigen_vector_vt<is_complex, V>* = nullptr,
+          require_var_t<base_type_t<value_type_t<V>>>* = nullptr>
+inline plain_type_t<V> inv_fft(const V& v) {
+  if (unlikely(v.size() < 1)) {
+    return plain_type_t<V>(v);
+  }
+
+  arena_t<V> arena_v = v;
+  arena_t<V> res = inv_fft(arena_v.val());
+
+  reverse_pass_callback(
+      [arena_v, res]() mutable { arena_v.adj() += fft(res.adj()); });
 
   return plain_type_t<V>(res);
 }
