@@ -128,3 +128,37 @@ TEST(AgradRevMatrixAddons, var_row_vector) {
   EXPECT_EQ(row_vec_vi.adj().rows(), derivs.rows());
   EXPECT_EQ(row_vec_vi.adj().cols(), derivs.cols());
 }
+
+TEST(AgradRevMatrixAddons, complex_matrix) {
+  using Eigen::MatrixXcd;
+  using complex_var_mat = Eigen::Matrix<std::complex<stan::math::var>, -1, -1>;
+
+  MatrixXcd vals = MatrixXcd::Random(100, 100);
+  MatrixXcd derivs = MatrixXcd::Random(100, 100);
+
+  complex_var_mat mat_in = vals;
+
+  for (int i = 0; i < 100; i++)
+    for (int j = 0; j < 100; j++) {
+      mat_in(i, j).real().vi_->adj_ = derivs(i, j).real();
+      mat_in(i, j).imag().vi_->adj_ = derivs(i, j).imag();
+    }
+
+  EXPECT_MATRIX_FLOAT_EQ(vals.real(), mat_in.real().val());
+  EXPECT_MATRIX_FLOAT_EQ(vals.imag(), mat_in.imag().val());
+  // ideally the above two lines would just be
+  EXPECT_MATRIX_EQ(vals, mat_in.val());
+
+  // etc, all copied from above
+  EXPECT_MATRIX_EQ(vals.val(), mat_in.val());
+  EXPECT_MATRIX_EQ(vals.array().exp(), mat_in.val().array().exp());
+
+  EXPECT_MATRIX_EQ(derivs, mat_in.adj());
+  EXPECT_MATRIX_EQ(derivs.array().exp(), mat_in.adj().array().exp());
+
+  EXPECT_EQ(mat_in.val().rows(), vals.rows());
+  EXPECT_EQ(mat_in.val().cols(), vals.cols());
+
+  EXPECT_EQ(mat_in.adj().rows(), derivs.rows());
+  EXPECT_EQ(mat_in.adj().cols(), derivs.cols());
+}
