@@ -22,11 +22,12 @@ inline plain_type_t<V> fft(const V& v) {
   }
 
   arena_t<V> arena_v = v;
-  arena_t<V> res = fft(to_complex(arena_v.real().adj(), arena_v.imag().adj()));
+  arena_t<V> res = fft(to_complex(arena_v.real().val(), arena_v.imag().val()));
 
   reverse_pass_callback([arena_v, res]() mutable {
+    // adjoint(x) += length(y) * ifft(adjoint(y))
     auto adj_inv_fft = inv_fft(to_complex(res.real().adj(), res.imag().adj()));
-
+    adj_inv_fft *= res.size();
     arena_v.real().adj() += adj_inv_fft.real();
     arena_v.imag().adj() += adj_inv_fft.imag();
   });
@@ -42,13 +43,17 @@ inline plain_type_t<V> inv_fft(const V& v) {
   }
 
   arena_t<V> arena_v = v;
-  arena_t<V> res = inv_fft(to_complex(arena_v.real().adj(), arena_v.imag().adj()));
+  arena_t<V> res
+      = inv_fft(to_complex(arena_v.real().val(), arena_v.imag().val()));
 
   reverse_pass_callback([arena_v, res]() mutable {
-    auto adj_inv_fft = fft(to_complex(res.real().adj(), res.imag().adj()));
+    // adjoint(x) += (1 / length(y)) * fft(adjoint(y))
 
-    arena_v.real().adj() += adj_inv_fft.real();
-    arena_v.imag().adj() += adj_inv_fft.imag();
+    auto adj_fft = fft(to_complex(res.real().adj(), res.imag().adj()));
+    adj_fft /= res.size();
+
+    arena_v.real().adj() += adj_fft.real();
+    arena_v.imag().adj() += adj_fft.imag();
   });
   return plain_type_t<V>(res);
 }
