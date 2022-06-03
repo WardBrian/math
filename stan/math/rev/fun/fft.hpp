@@ -5,6 +5,7 @@
 #include <stan/math/prim/fun/typedefs.hpp>
 #include <stan/math/rev/meta.hpp>
 #include <stan/math/prim/fun/fft.hpp>
+#include <stan/math/prim/fun/to_complex.hpp>
 #include <Eigen/Dense>
 #include <complex>
 #include <type_traits>
@@ -21,10 +22,14 @@ inline plain_type_t<V> fft(const V& v) {
   }
 
   arena_t<V> arena_v = v;
-  arena_t<V> res = fft(arena_v.val());
+  arena_t<V> res = fft(to_complex(arena_v.real().adj(), arena_v.imag().adj()));
 
-  reverse_pass_callback(
-      [arena_v, res]() mutable { arena_v.adj() += inv_fft(res.adj()); });
+  reverse_pass_callback([arena_v, res]() mutable {
+    auto adj_inv_fft = inv_fft(to_complex(res.real().adj(), res.imag().adj()));
+
+    arena_v.real().adj() += adj_inv_fft.real();
+    arena_v.imag().adj() += adj_inv_fft.imag();
+  });
 
   return plain_type_t<V>(res);
 }
@@ -37,11 +42,14 @@ inline plain_type_t<V> inv_fft(const V& v) {
   }
 
   arena_t<V> arena_v = v;
-  arena_t<V> res = inv_fft(arena_v.val());
+  arena_t<V> res = inv_fft(to_complex(arena_v.real().adj(), arena_v.imag().adj()));
 
-  reverse_pass_callback(
-      [arena_v, res]() mutable { arena_v.adj() += fft(res.adj()); });
+  reverse_pass_callback([arena_v, res]() mutable {
+    auto adj_inv_fft = fft(to_complex(res.real().adj(), res.imag().adj()));
 
+    arena_v.real().adj() += adj_inv_fft.real();
+    arena_v.imag().adj() += adj_inv_fft.imag();
+  });
   return plain_type_t<V>(res);
 }
 

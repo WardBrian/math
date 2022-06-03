@@ -56,9 +56,6 @@ struct val_Op{
     std::enable_if_t<std::is_pointer<T>::value, const double&>
       operator()(T &v) const { return v->val_; }
 
-  // We need a copy of this for std::complex<var>, same for adj
-  // expectation: Eigen::Matrix<std::complex<var>>.val() returns Eigen::Matrix<std::complex<double>>
-
   //Returns value from a var
   template<typename T = Scalar>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
@@ -66,15 +63,11 @@ struct val_Op{
                       && !std::is_arithmetic<T>::value), const double&>
       operator()(T &v) const { return v.vi_->val_; }
 
-
-
   //Returns value from an fvar
   template<typename T = Scalar>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
     std::enable_if_t<is_fvar<T>::value, forward_return_t<T>>
       operator()(T &v) const { return v.val_; }
-
-  // We need copies of these three to return std::complex unchanged if it is double
 
   //Returns double unchanged from input (by value)
   template<typename T = Scalar>
