@@ -5,6 +5,10 @@
 
 #include <boost/lexical_cast.hpp>
 
+#if defined EIGEN_FFTW_DEFAULT && defined STAN_THREADS
+#include <fftw3.h>
+#endif
+
 #ifndef TBB_INTERFACE_NEW
 #include <tbb/tbb_stddef.h>
 
@@ -99,6 +103,11 @@ inline int get_num_threads() {
  */
 inline tbb::task_arena& init_threadpool_tbb(int n_threads = 0) {
   int tbb_max_threads = 1;
+
+#if defined EIGEN_FFTW_DEFAULT && defined STAN_THREADS
+  fftw_make_planner_thread_safe();
+#endif
+
 #ifdef STAN_THREADS
   if (n_threads == 0) {
     tbb_max_threads = internal::get_num_threads();
@@ -144,6 +153,11 @@ inline tbb::task_arena& init_threadpool_tbb(int n_threads = 0) {
  */
 inline tbb::task_scheduler_init& init_threadpool_tbb(int n_threads = 0) {
   int tbb_max_threads = 1;
+
+#if defined EIGEN_FFTW_DEFAULT && defined STAN_THREADS
+  fftw_make_planner_thread_safe();
+#endif
+
 #ifdef STAN_THREADS
   if (n_threads == 0) {
     tbb_max_threads = internal::get_num_threads();

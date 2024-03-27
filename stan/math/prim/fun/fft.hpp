@@ -86,10 +86,18 @@ template <typename M, require_eigen_dense_dynamic_vt<is_complex, M>* = nullptr,
           require_not_var_t<base_type_t<value_type_t<M>>>* = nullptr>
 inline Eigen::Matrix<scalar_type_t<M>, -1, -1> fft2(const M& x) {
   Eigen::Matrix<scalar_type_t<M>, -1, -1> y(x.rows(), x.cols());
+
+#if defined EIGEN_FFTW_DEFAULT || defined EIGEN_POCKETFFT_DEFAULT \
+    || defined EIGEN_MKL_DEFAULT
+  Eigen::Matrix<scalar_type_t<M>, -1, -1> xv = x;
+  Eigen::FFT<base_type_t<M>> fft;
+  fft.fwd2(y.data(), xv.data(), x.cols(), x.rows());
+#else
   for (int i = 0; i < y.rows(); ++i)
     y.row(i) = fft(x.row(i));
   for (int j = 0; j < y.cols(); ++j)
     y.col(j) = fft(y.col(j));
+#endif
   return y;
 }
 
@@ -108,10 +116,18 @@ template <typename M, require_eigen_dense_dynamic_vt<is_complex, M>* = nullptr,
           require_not_var_t<base_type_t<value_type_t<M>>>* = nullptr>
 inline Eigen::Matrix<scalar_type_t<M>, -1, -1> inv_fft2(const M& y) {
   Eigen::Matrix<scalar_type_t<M>, -1, -1> x(y.rows(), y.cols());
+
+#if defined EIGEN_FFTW_DEFAULT || defined EIGEN_POCKETFFT_DEFAULT \
+    || defined EIGEN_MKL_DEFAULT
+  Eigen::Matrix<scalar_type_t<M>, -1, -1> yv = y;
+  Eigen::FFT<base_type_t<M>> fft;
+  fft.inv2(x.data(), yv.data(), y.cols(), y.rows());
+#else
   for (int j = 0; j < x.cols(); ++j)
     x.col(j) = inv_fft(y.col(j));
   for (int i = 0; i < x.rows(); ++i)
     x.row(i) = inv_fft(x.row(i));
+#endif
   return x;
 }
 
